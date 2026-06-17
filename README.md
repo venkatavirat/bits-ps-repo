@@ -136,5 +136,5 @@ Every Pull Request should contain:
 
 ---
 
-## Projects
+
 
