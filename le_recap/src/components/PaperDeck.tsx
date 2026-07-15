@@ -1,6 +1,7 @@
 // src/components/PaperDeck.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import html2canvas from 'html2canvas';
 import pageImage from '../assets/page.png';
 
 const JERSEY_FONT = "'Jersey 10', sans-serif";
@@ -15,8 +16,11 @@ interface PaperDeckProps {
 }
 
 export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
-  // Track the current active card index instead of a count
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'success' | 'error'>('idle');
+
+  // 1. This ref now points to our off-screen, perfectly flat twin card!
+  const flatMirrorRef = useRef<HTMLDivElement>(null);
 
   const nextCard = () => {
     if (currentIndex < cards.length - 1) {
@@ -25,12 +29,11 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
   };
 
   const prevCard = () => {
-    if (currentIndex > 0) {
+    if (currentIndex >= 0) {
       setCurrentIndex((prev) => prev - 1);
     }
   };
 
-  // Handle click zones based on screen position
   const handleScreenClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const halfWidth = window.innerWidth / 2;
     if (e.clientX > halfWidth) {
@@ -40,7 +43,6 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
     }
   };
 
-  // Handle Arrow key presses
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
@@ -52,7 +54,48 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, cards.length]); // Re-bind when index changes to keep current state fresh
+  }, [currentIndex, cards.length]);
+
+  const handleShareRecap = async () => {
+    if (!flatMirrorRef.current) return;
+
+    setShareStatus('copying');
+
+    try {
+      // 2. Snap the off-screen flat mirror card instead of the rotated active card
+      const canvas = await html2canvas(flatMirrorRef.current, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: null,
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) throw new Error('Failed to create blob');
+
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [blob.type]: blob,
+            }),
+          ]);
+
+          setShareStatus('success');
+          setTimeout(() => setShareStatus('idle'), 2500);
+        } catch (clipboardError) {
+          console.error('Clipboard permission denied:', clipboardError);
+          setShareStatus('error');
+          setTimeout(() => setShareStatus('idle'), 2500);
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Failed to capture card snapshot:', error);
+      setShareStatus('error');
+      setTimeout(() => setShareStatus('idle'), 2500);
+    }
+  };
+
+  const lastCardData = cards[cards.length - 1];
 
   return (
     <div 
@@ -66,12 +109,78 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
         alignItems: 'center',
         overflow: 'hidden',
         background: 'hsl(180, 14%, 31%)',
-        cursor: 'pointer', // Indicates the screen is completely clickable
+        cursor: 'pointer',
       }}
     >
-      {/* Visual Navigation Hint Overlays (Invisible but functional guide) */}
+      {/* 3. THE SECRET FLAT TWIN (Hidden way off-screen, completely unrotated) */}
+      {lastCardData && (
+        <div
+          ref={flatMirrorRef}
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            top: '-9999px',
+            width: '400px',  // Match your exact on-screen card dimensions
+            height: '550px',
+            backgroundImage: `url(${pageImage.src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            boxShadow: '0px 10px 25px rgba(0,0,0,0.35)',
+            padding: '40px 30px 40px 65px',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div 
+            style={{
+              fontFamily: JERSEY_FONT,
+              fontSize: '28px',
+              color: '#1a1a1a',
+              lineHeight: '1.45',
+              letterSpacing: '0.5px',
+              whiteSpace: 'pre-wrap',
+              textAlign: 'left',
+            }}
+          >
+            {lastCardData.content.map((line, i) => (
+              <div key={i} style={{ minHeight: '32px' }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Back Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          window.dispatchEvent(new Event('go-back-to-landing'));
+        }}
+        style={{
+          position: 'absolute',
+          top: '40px',
+          left: '40px',
+          fontFamily: JERSEY_FONT,
+          fontSize: '24px',
+          padding: '8px 16px',
+          background: '#FFE066',
+          border: '3px solid #000',
+          cursor: 'pointer',
+          boxShadow: '4px 4px 0px #000',
+          zIndex: cards.length + 20,
+          transition: 'transform 0.1s ease',
+        }}
+        onMouseDown={(e) => (e.currentTarget.style.transform = 'translate(2px, 2px)')}
+        onMouseUp={(e) => (e.currentTarget.style.transform = 'none')}
+      >
+        ← BACK
+      </button>
+
+      {/* Navigation Hints */}
       <div style={{ position: 'absolute', left: '20px', bottom: '20px', color: '#fff', opacity: 0.4, fontFamily: JERSEY_FONT, fontSize: '20px', pointerEvents: 'none' }}>
-        {currentIndex > 0 ? '← Click Left / Arrow Left' : ''}
+        {currentIndex >= 0 ? '← Click Left / Arrow Left' : ''}
       </div>
       <div style={{ position: 'absolute', right: '20px', bottom: '20px', color: '#fff', opacity: 0.4, fontFamily: JERSEY_FONT, fontSize: '20px', pointerEvents: 'none' }}>
         {currentIndex < cards.length - 1 ? 'Click Right / Arrow Right →' : 'Done!'}
@@ -79,40 +188,67 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
 
       <div style={{ position: 'relative', width: '400px', height: '550px' }} onClick={(e) => e.stopPropagation()}>
         <AnimatePresence mode="popLayout">
-          {/* 
-            Only render cards up to the currentIndex. 
-            When currentIndex decreases, the top card unmounts and plays its exit animation.
-          */}
-          {cards.slice(0, currentIndex + 1).map((card, index) => (
-            <PaperSheet 
-              key={card.id} 
-              content={card.content} 
-              index={index} 
-            />
-          ))}
+          {currentIndex === -1 ? (
+            <motion.div
+              key="intro-text"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                position: 'absolute',
+                width: '100%',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                textAlign: 'center',
+                fontFamily: JERSEY_FONT,
+                fontSize: '36px',
+                color: '#fff',
+                textShadow: '2px 2px 0px #000',
+                pointerEvents: 'none',
+              }}
+            >
+              Click to view your recap!
+            </motion.div>
+          ) : (
+            cards.slice(0, currentIndex + 1).map((card, index) => (
+              <PaperSheet 
+                key={card.id} 
+                content={card.content} 
+                index={index} 
+              />
+            ))
+          )}
         </AnimatePresence>
       </div>
 
+      {/* Share / Copy Button */}
       {currentIndex === cards.length - 1 && (
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering the page turn click
-            alert("Share your Wrapped!");
+            e.stopPropagation();
+            handleShareRecap();
           }}
+          disabled={shareStatus === 'copying'}
           style={{
             position: 'absolute',
+            bottom: '60px',
             right: '100px',
             fontFamily: JERSEY_FONT,
             fontSize: '24px',
             padding: '10px 24px',
-            background: '#FFE066',
+            background: shareStatus === 'success' ? '#86EFAC' : '#FFE066',
             border: '3px solid #000',
-            cursor: 'pointer',
+            cursor: shareStatus === 'copying' ? 'not-allowed' : 'pointer',
             boxShadow: '4px 4px 0px #000',
-            zIndex: cards.length + 10, // Make sure it stays clickable on top of everything
+            zIndex: cards.length + 10,
+            transition: 'background 0.2s ease',
           }}
         >
-          SHARE RECAP
+          {shareStatus === 'idle' && 'SHARE RECAP'}
+          {shareStatus === 'copying' && 'GENERATING...'}
+          {shareStatus === 'success' && 'COPIED IMAGE!'}
+          {shareStatus === 'error' && 'FAILED TO COPY :('}
         </button>
       )}
     </div>
@@ -128,14 +264,14 @@ interface PaperSheetProps {
 
 const PaperSheet: React.FC<PaperSheetProps> = ({ content, index }) => {
   const randomRotation = React.useMemo(() => {
-    const seed = index * 153.7;
-    return Math.sin(seed) * 4;
+    const seed = (index + 1) * 153.7;
+    return Math.sin(seed) * 6;
   }, [index]);
 
   const dropVariants: Variants = {
     initial: {
       y: -800,
-      opacity: 0,
+      opacity: 1,
       rotate: 0,
       scale: 1.05,
     },
@@ -147,13 +283,13 @@ const PaperSheet: React.FC<PaperSheetProps> = ({ content, index }) => {
       transition: {
         type: 'spring',
         stiffness: 65,
-        damping: 15,
+        damping: 18,
         mass: 1.1,
       },
     },
     exit: {
-      y: -800, // Pulls the paper back up to the top when going backward
-      opacity: 0,
+      y: -800,
+      opacity: 1,
       rotate: 0,
       scale: 1.05,
       transition: {
