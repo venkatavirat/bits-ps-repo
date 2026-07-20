@@ -15,15 +15,31 @@ interface PaperDeckProps {
   cards: CardData[];
 }
 
-export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
+export const PaperDeck: React.FC<PaperDeckProps> = ({ cards: initialCards }) => {
+  // Store deck cards in local state so it can update dynamically when Groq responds
+  const [deckCards, setDeckCards] = useState<CardData[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'success' | 'error'>('idle');
 
-  // 1. This ref now points to our off-screen, perfectly flat twin card!
+  // Ref pointing to our off-screen, perfectly flat twin card for clean PNG exports
   const flatMirrorRef = useRef<HTMLDivElement>(null);
 
+  // --- GROQ API INTEGRATION LISTENER ---
+  // Listens for the custom DOM event dispatched by Landing.astro when Groq responds
+  useEffect(() => {
+    const handleUpdateCards = (e: CustomEvent<CardData[]>) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setDeckCards(e.detail);
+        setCurrentIndex(-1); // Reset card stack to show intro click screen
+      }
+    };
+
+    window.addEventListener('update-recap-cards' as any, handleUpdateCards);
+    return () => window.removeEventListener('update-recap-cards' as any, handleUpdateCards);
+  }, []);
+
   const nextCard = () => {
-    if (currentIndex < cards.length - 1) {
+    if (currentIndex < deckCards.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     }
   };
@@ -54,7 +70,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, cards.length]);
+  }, [currentIndex, deckCards.length]);
 
   const handleShareRecap = async () => {
     if (!flatMirrorRef.current) return;
@@ -62,7 +78,6 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
     setShareStatus('copying');
 
     try {
-      // 2. Snap the off-screen flat mirror card instead of the rotated active card
       const canvas = await html2canvas(flatMirrorRef.current, {
         useCORS: true,
         scale: 2,
@@ -95,7 +110,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
     }
   };
 
-  const lastCardData = cards[cards.length - 1];
+  const lastCardData = deckCards[deckCards.length - 1];
 
   return (
     <div 
@@ -112,7 +127,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
         cursor: 'pointer',
       }}
     >
-      {/* 3. THE SECRET FLAT TWIN (Hidden way off-screen, completely unrotated) */}
+      {/* THE SECRET FLAT TWIN (Hidden off-screen for unrotated html2canvas captures) */}
       {lastCardData && (
         <div
           ref={flatMirrorRef}
@@ -120,7 +135,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
             position: 'absolute',
             left: '-9999px',
             top: '-9999px',
-            width: '400px',  // Match your exact on-screen card dimensions
+            width: '400px',
             height: '550px',
             backgroundImage: `url(${pageImage.src})`,
             backgroundSize: 'cover',
@@ -169,7 +184,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
           border: '3px solid #000',
           cursor: 'pointer',
           boxShadow: '4px 4px 0px #000',
-          zIndex: cards.length + 20,
+          zIndex: deckCards.length + 20,
           transition: 'transform 0.1s ease',
         }}
         onMouseDown={(e) => (e.currentTarget.style.transform = 'translate(2px, 2px)')}
@@ -183,7 +198,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
         {currentIndex >= 0 ? '← Click Left / Arrow Left' : ''}
       </div>
       <div style={{ position: 'absolute', right: '20px', bottom: '20px', color: '#fff', opacity: 0.4, fontFamily: JERSEY_FONT, fontSize: '20px', pointerEvents: 'none' }}>
-        {currentIndex < cards.length - 1 ? 'Click Right / Arrow Right →' : 'Done!'}
+        {currentIndex < deckCards.length - 1 ? 'Click Right / Arrow Right →' : 'Done!'}
       </div>
 
       <div style={{ position: 'relative', width: '400px', height: '550px' }} onClick={(e) => e.stopPropagation()}>
@@ -211,7 +226,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
               Click to view your recap!
             </motion.div>
           ) : (
-            cards.slice(0, currentIndex + 1).map((card, index) => (
+            deckCards.slice(0, currentIndex + 1).map((card, index) => (
               <PaperSheet 
                 key={card.id} 
                 content={card.content} 
@@ -223,7 +238,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
       </div>
 
       {/* Share / Copy Button */}
-      {currentIndex === cards.length - 1 && (
+      {currentIndex === deckCards.length - 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -241,7 +256,7 @@ export const PaperDeck: React.FC<PaperDeckProps> = ({ cards }) => {
             border: '3px solid #000',
             cursor: shareStatus === 'copying' ? 'not-allowed' : 'pointer',
             boxShadow: '4px 4px 0px #000',
-            zIndex: cards.length + 10,
+            zIndex: deckCards.length + 10,
             transition: 'background 0.2s ease',
           }}
         >

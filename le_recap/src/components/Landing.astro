@@ -4,38 +4,15 @@ import play from '../assets/nonoiseplay.svg';
 import background from '../assets/table cats.gif';
 import { PaperDeck } from './PaperDeck';
 
-// Example mock data structure
-const mockWrappedData = [
+const defaultCards = [
   {
-    id: 'intro',
+    id: 'loading-fallback',
     content: [
-      'wefwfe RECAP thing 001110110101',
-      'next line',
-      'woah',
-      'ok fire',
-      'this works??!?!?!!!!',
-      'aaaaaaaaaaa'
-    ]
-  },
-  {
-    id: 'stats-hours',
-    content: [
-      'TERM ANALYSIS // SUITE 82',
+      'GENERATING YOUR RECAP...',
       '------------------------',
-      'Total Focus Time: 142 hrs',
-      'Peak Productivity: 2 AM',
-      'status: unlocked demon mode',
-    ]
-  },
-  {
-    id: 'stats-skills',
-    content: [
-      'SKILLS ACQUIRED:',
-      '-> TypeScript optimization',
-      '-> Microprocessor logic',
-      '-> DB Normalization (BCNF)',
-      '',
-      'Final Grade: CRUSHED IT'
+      'Connecting to Groq AI...',
+      'Analyzing focus metrics...',
+      'Preparing your stats!'
     ]
   }
 ];
@@ -57,12 +34,80 @@ const mockWrappedData = [
     </main>
 
     <section id="game-screen">
-        <PaperDeck 
-          cards={mockWrappedData} 
-          client:load 
-        />
+        <PaperDeck cards={defaultCards} client:load />
     </section>
 </div>
+
+<script>
+    const startButton = document.getElementById('start-button');
+    const container = document.getElementById('container');
+    const wipe = document.querySelector('.screen-wipe') as HTMLElement | null;
+
+    startButton?.addEventListener('click', async () => {
+        if (!container || !wipe) return;
+
+        // 1. Trigger green screen wipe
+        wipe.style.transformOrigin = 'left';
+        container.classList.add('swipe-active');
+
+        try {
+            console.log('Fetching Groq recap cards...');
+            
+            // 2. Fetch the dynamic recap from Groq
+            const response = await fetch('/api/generator', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userData: {
+                      role: "Software Engineering Intern",
+                      company: "Caarya Innovative Pvt. Ltd.",
+                      hoursLogged: 160,
+                      topTopics: ["Astro Islands", "Groq AI Integration", "Framer Motion", "Student Wrapped Agent"],
+                      accomplishment: "Built AI Portfolio Copilot & ReadWrap interactive app"
+                    }
+                })
+            });
+
+            if (!response.ok) {
+              const errText = await response.text();
+              throw new Error(`API returned ${response.status}: ${errText}`);
+            }
+
+            const cards = await response.json();
+            console.log('Received cards from Groq:', cards);
+
+            // 3. Dispatch generated cards to React PaperDeck component
+            if (Array.isArray(cards) && cards.length > 0) {
+                window.dispatchEvent(new CustomEvent('update-recap-cards', { detail: cards }));
+            } else {
+                console.warn('Groq returned empty card array:', cards);
+            }
+        } catch (e) {
+            console.error('Failed to load dynamic Groq cards, using default fallback:', e);
+        } finally {
+            // 4. Complete transition once fetch finishes (or fails)
+            setTimeout(() => {
+                container.classList.add('wipe-complete'); 
+                wipe.style.transformOrigin = 'right';      
+                container.classList.remove('swipe-active'); 
+            }, 300); // Small smooth buffer for the wipe to complete
+        }
+    });
+
+    // Handle Back Transition
+    window.addEventListener('go-back-to-landing', () => {
+        if (!container || !wipe) return;
+
+        wipe.style.transformOrigin = 'right';
+        container.classList.add('swipe-active');
+
+        setTimeout(() => {
+            container.classList.remove('wipe-complete');
+            wipe.style.transformOrigin = 'left';      
+            container.classList.remove('swipe-active');
+        }, 600);
+    });
+</script>
 
 <style>
     /* ... keep your existing style section unchanged ... */
@@ -235,39 +280,3 @@ const mockWrappedData = [
         }
     }
 </style>
-
-<script>
-    const startButton = document.getElementById('start-button');
-    const container = document.getElementById('container');
-    const wipe = document.querySelector('.screen-wipe') as HTMLElement | null;
-
-    // Transition: Landing Screen -> Game Cards Screen
-    startButton?.addEventListener('click', () => {
-        if (!container || !wipe) return;
-
-        // Reset origin to left so green wipe sweeps to the right
-        wipe.style.transformOrigin = 'left';
-        container.classList.add('swipe-active');
-
-        setTimeout(() => {
-            container.classList.add('wipe-complete'); 
-            wipe.style.transformOrigin = 'right';      
-            container.classList.remove('swipe-active'); // Retracts to the right side
-        }, 600); 
-    });
-
-    // Transition: Game Cards Screen -> Back to Landing Screen
-    window.addEventListener('go-back-to-landing', () => {
-        if (!container || !wipe) return;
-
-        // Origin to right so green wipe sweeps backward to the left
-        wipe.style.transformOrigin = 'right';
-        container.classList.add('swipe-active');
-
-        setTimeout(() => {
-            container.classList.remove('wipe-complete'); // Re-enable landing visibility
-            wipe.style.transformOrigin = 'left';      
-            container.classList.remove('swipe-active'); // Retracts to the left side
-        }, 600);
-    });
-</script>
