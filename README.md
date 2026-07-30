@@ -15,7 +15,7 @@ The pipeline is strictly modular, ensuring zero hallucinations and perfect trace
 5. **Console UI (`app.py`):** A clean, Streamlit-based executive dashboard to orchestrate the pipeline.
 
 ## 🚀 Live Demo
-[Insert your Streamlit app link here once deployed]
+https://ai-outreach-agent-v2.streamlit.app/
 
 ## 🛠️ Tech Stack
 - **Language:** Python
