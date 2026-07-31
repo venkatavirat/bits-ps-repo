@@ -1,0 +1,215 @@
+.feed-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.feed-bg {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(124, 111, 247, 0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 50%, rgba(16, 199, 154, 0.06) 0%, transparent 60%);
+}
+
+.feed-orb {
+  position: fixed;
+  width: 600px; height: 600px;
+  background: rgba(124, 111, 247, 0.06);
+  border-radius: 50%;
+  filter: blur(100px);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-orb 3s ease-in-out infinite;
+}
+
+@keyframes pulse-orb {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+.feed-container {
+  width: 100%;
+  max-width: 560px;
+  position: relative;
+  z-index: 1;
+}
+
+.feed-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.feed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 199, 154, 0.1);
+  border: 1px solid rgba(16, 199, 154, 0.3);
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pm);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pulse-dot {
+  width: 7px; height: 7px;
+  background: var(--pm);
+  border-radius: 50%;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.feed-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.feed-idea {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Terminal */
+.feed-terminal {
+  background: #05080F;
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 8px;
+  font-family: monospace;
+}
+
+.terminal-body {
+  padding: 20px;
+  min-height: 200px;
+  font-family: 'Courier New', monospace;
+}
+
+.feed-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  animation: slide-in 0.3s ease;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.feed-line-icon { font-size: 14px; }
+.feed-line-text {
+  font-size: 13px;
+  color: #A8B2D8;
+  flex: 1;
+}
+.feed-line-check {
+  font-size: 11px;
+  color: var(--pm);
+}
+
+.feed-cursor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.feed-spinner {
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
+  font-size: 16px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.feed-cursor-text {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Stage progress pills */
+.feed-stages-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.stage-pill {
+  flex: 1;
+  height: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--vc), var(--pm));
+  opacity: 0.3;
+}
+
+.stage-pill span {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+.feed-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}

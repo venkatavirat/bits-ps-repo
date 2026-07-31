@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+  --bg: #080B14;
+  --bg-card: #0F1420;
+  --bg-elevated: #161C2D;
+  --border: #1E2640;
+  --border-bright: #2A3354;
+
+  /* Persona colors */
+  --vc: #7C6FF7;
+  --vc-dim: rgba(124, 111, 247, 0.12);
+  --vc-glow: rgba(124, 111, 247, 0.3);
+
+  --pm: #10C79A;
+  --pm-dim: rgba(16, 199, 154, 0.12);
+  --pm-glow: rgba(16, 199, 154, 0.3);
+
+  --customer: #F56565;
+  --customer-dim: rgba(245, 101, 101, 0.12);
+  --customer-glow: rgba(245, 101, 101, 0.3);
+
+  /* Neutral text */
+  --text-primary: #F0F2F8;
+  --text-secondary: #8892B0;
+  --text-muted: #4A5578;
+
+  /* Accent */
+  --accent: #7C6FF7;
+  --accent-dim: rgba(124, 111, 247, 0.15);
+
+  /* Fonts */
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* ── Shared utilities ── */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover {
+  background: #9188f9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px var(--vc-glow);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-bright);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
