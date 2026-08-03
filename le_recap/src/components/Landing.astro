@@ -3,40 +3,16 @@ import rect from '../assets/Rectangle22.svg';
 import play from '../assets/nonoiseplay.svg';
 import background from '../assets/table cats.gif';
 import { PaperDeck } from './PaperDeck';
-import Card from './Card'
 
-// Example mock data structure to pass into <PaperDeck cards={mockWrappedData} client:load />
-const mockWrappedData = [
+const defaultCards = [
   {
-    id: 'intro',
+    id: 'loading-fallback',
     content: [
-      'wefwfe RECAP thing 001110110101',
-      'next line',
-      'woah',
-      'ok fire',
-      'this works??!?!?!!!!',
-      'aaaaaaaaaaa'
-    ]
-  },
-  {
-    id: 'stats-hours',
-    content: [
-      'TERM ANALYSIS // SUITE 82',
+      'GENERATING YOUR RECAP...',
       '------------------------',
-      'Total Focus Time: 142 hrs',
-      'Peak Productivity: 2 AM',
-      'status: unlocked demon mode',
-    ]
-  },
-  {
-    id: 'stats-skills',
-    content: [
-      'SKILLS ACQUIRED:',
-      '-> TypeScript optimization',
-      '-> Microprocessor logic',
-      '-> DB Normalization (BCNF)',
-      '',
-      'Final Grade: CRUSHED IT'
+      'Connecting to Groq AI...',
+      'Analyzing focus metrics...',
+      'Preparing your stats!'
     ]
   }
 ];
@@ -44,27 +20,97 @@ const mockWrappedData = [
 
 <div id="container">
     
-	<div class="screen-wipe"></div>
+    <div class="screen-wipe"></div>
 
-	<main id="landing-screen">
-		<img id="background" src={background.src} alt="" fetchpriority="high" />
+    <main id="landing-screen">
+        <img id="background" src={background.src} alt="" fetchpriority="high" />
         <div class="rect" style={`--bg-url: url(${rect.src})`}>
             <h1 class="title">ReadWrap</h1>
             <button class="play-btn" id="start-button" aria-label="Play Game">
-				<img class="play" src={play.src} alt=""/>
-			</button>
+                <img class="play" src={play.src} alt=""/>
+            </button>
         </div>
-		<a class="credits" href="https://mejwh.tumblr.com">Background Credit: MEJWH</a>
+        <a class="credits" href="https://mejwh.tumblr.com">Background Credit: MEJWH</a>
     </main>
 
-	<section id="game-screen">
-        <PaperDeck cards={mockWrappedData} client:load />
+    <section id="game-screen">
+        <PaperDeck cards={defaultCards} client:load />
     </section>
 </div>
 
-<style>
+<script>
+    const startButton = document.getElementById('start-button');
+    const container = document.getElementById('container');
+    const wipe = document.querySelector('.screen-wipe') as HTMLElement | null;
 
-	/* Reset screens to be stationary but layered */
+    startButton?.addEventListener('click', async () => {
+        if (!container || !wipe) return;
+
+        // 1. Trigger green screen wipe
+        wipe.style.transformOrigin = 'left';
+        container.classList.add('swipe-active');
+
+        try {
+            console.log('Fetching Groq recap cards...');
+            
+            // 2. Fetch the dynamic recap from Groq
+            const response = await fetch('/api/generator', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userData: {
+                      role: "Software Engineering Intern",
+                      company: "Caarya Innovative Pvt. Ltd.",
+                      hoursLogged: 160,
+                      topTopics: ["Astro Islands", "Groq AI Integration", "Framer Motion", "Student Wrapped Agent"],
+                      accomplishment: "Built AI Portfolio Copilot & ReadWrap interactive app"
+                    }
+                })
+            });
+
+            if (!response.ok) {
+              const errText = await response.text();
+              throw new Error(`API returned ${response.status}: ${errText}`);
+            }
+
+            const cards = await response.json();
+            console.log('Received cards from Groq:', cards);
+
+            // 3. Dispatch generated cards to React PaperDeck component
+            if (Array.isArray(cards) && cards.length > 0) {
+                window.dispatchEvent(new CustomEvent('update-recap-cards', { detail: cards }));
+            } else {
+                console.warn('Groq returned empty card array:', cards);
+            }
+        } catch (e) {
+            console.error('Failed to load dynamic Groq cards, using default fallback:', e);
+        } finally {
+            // 4. Complete transition once fetch finishes (or fails)
+            setTimeout(() => {
+                container.classList.add('wipe-complete'); 
+                wipe.style.transformOrigin = 'right';      
+                container.classList.remove('swipe-active'); 
+            }, 300); // Small smooth buffer for the wipe to complete
+        }
+    });
+
+    // Handle Back Transition
+    window.addEventListener('go-back-to-landing', () => {
+        if (!container || !wipe) return;
+
+        wipe.style.transformOrigin = 'right';
+        container.classList.add('swipe-active');
+
+        setTimeout(() => {
+            container.classList.remove('wipe-complete');
+            wipe.style.transformOrigin = 'left';      
+            container.classList.remove('swipe-active');
+        }, 600);
+    });
+</script>
+
+<style>
+    /* ... keep your existing style section unchanged ... */
     #landing-screen, #game-screen {
         position: absolute;
         top: 0;
@@ -75,59 +121,49 @@ const mockWrappedData = [
 
     #landing-screen {
         padding-top: 2.5cqw; 
-        z-index: 2; /* Sits on top initially */
-        transition: opacity 0.4s ease; /* Fade out gracefully as the wipe covers it */
+        z-index: 2;
+        transition: opacity 0.4s ease;
     }
 
     #game-screen {
-        background: hsl(180, 14, 31); 
+        background: hsl(180, 14%, 31%); /* Typo fixed: added % signs for valid CSS rendering */
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        opacity: 0; /* Hidden initially */
+        opacity: 0;
         pointer-events: none;
         z-index: 1;
     }
 
-    /* 
-       The Wipe Overlay:
-       Starts fixed to the left with 0 width.
-    */
     .screen-wipe {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: #09BC98; /* Your signature green */
-        z-index: 10; /* Sits above everything during transition */
+        background-color: #09BC98;
+        z-index: 10;
         transform: scaleX(0);
         transform-origin: left;
         transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
     }
 
-    /* --- Transition States --- */
-
-    /* 1. The Wipe stretches to cover the screen */
     .swipe-active .screen-wipe {
         transform: scaleX(1);
     }
 
-    /* 2. Hide the landing screen once covered */
     .wipe-complete #landing-screen {
         opacity: 0;
         pointer-events: none;
     }
 
-    /* 3. Keep the game screen permanently active and visible */
     .wipe-complete #game-screen {
         opacity: 1;
         pointer-events: auto;
-        z-index: 3; /* Placed above landing screen */
+        z-index: 3;
     }
 
-    /* Reset margins to prevent unexpected shifting */
     :global(body) {
         margin: 0;
         padding: 0;
@@ -147,49 +183,43 @@ const mockWrappedData = [
         left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover; /* Forces the pixel art GIF to fill the screen cleanly without stretching */
+        object-fit: cover;
         z-index: -1;
     }
 
     main {
-		margin: 0;
+        margin: 0;
         position: absolute;
         top: 0;
         left: 0;
-        padding-top: 2.5cqw; /* Pushes the entire banner slightly away from the viewport edges like the mockup */
+        padding-top: 2.5cqw;
     }
 
-	.credits {
-		position: fixed;
-		bottom: 10px;
-		right: 10px;
-		font-family: 'Press Start 2P', cursive;
-		color: rgba(212, 198, 70, 0.514);
-		font-size: 0.6vw;
-	}
+    .credits {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        font-family: 'Press Start 2P', cursive;
+        color: rgba(212, 198, 70, 0.514);
+        font-size: 0.6vw;
+    }
 
     .rect {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        
         background-image: url('../assets/Rectangle22.svg'); 
         background-repeat: no-repeat;
         background-size: cover;
         background-position: top;
-		margin-left: 0px;
-        
-        /* Added balanced internal padding to center the content inside the blue asset */
+        margin-left: 0px;
         padding: 4cqw 8cqw 4cqw 6cqw; 
         gap: 3cqw;
         width: fit-content;
-        
-        /* Drop shadow effect from the mockup */
         filter: drop-shadow(0px 0.8cqw 0px rgba(0, 0, 0, 0.15));
-
-		animation: slideIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards;
-		opacity: 0;
-		will-change: transform, opacity; 
+        animation: slideIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards;
+        opacity: 0;
+        will-change: transform, opacity; 
     }
 
     .title {
@@ -203,13 +233,12 @@ const mockWrappedData = [
             -0.08em -0.08em 0 #09BC98,  0.08em -0.08em 0 #09BC98,
             -0.08em  0.08em 0 #09BC98,  0.08em  0.08em 0 #09BC98,
              0.15em  0.18em 0 #F2D857;
-
-		animation: slideIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards;
-		opacity: 0;
-		will-change: transform, opacity; 
+        animation: slideIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards;
+        opacity: 0;
+        will-change: transform, opacity; 
     }
 
-	.play-btn {
+    .play-btn {
         background: none;
         border: none;
         padding: 0;
@@ -219,8 +248,6 @@ const mockWrappedData = [
         display: inline-flex;
         align-items: center;
         flex-shrink: 0;
-
-        /* Keep your original entrance animation here */
         animation: slideIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards;
         opacity: 0;
         will-change: transform, opacity; 
@@ -229,57 +256,27 @@ const mockWrappedData = [
     .play {
         height: 5cqw; 
         width: auto;
-        /* Kept your visual alignment correction */
         transform: translateY(0.2cqw); 
-        
-        /* Smooth zoom transition */
         transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-        /* Keeps pixel art sharp when scaling */
         image-rendering: pixelated; 
     }
 
-    /* 3. The Hover Effect: Zoom in slightly when hovering over the button */
     .play-btn:hover .play {
         transform: translateY(0.2cqw) scale(1.15);
     }
 
-    /* 4. Optional: A nice tactile press effect when clicked */
     .play-btn:active .play {
         transform: translateY(0.2cqw) scale(0.95);
     }
 
-	@keyframes slideIn {
-		from {
-		transform: translateX(-100%); /* Start completely off-screen to the left */
-		opacity: 0;                   /* Start invisible */
-		}
-		to {
-		transform: translateX(0);     /* End at its natural position */
-		opacity: 1;                   /* Fully visible */
-		}
-	}
-
+    @keyframes slideIn {
+        from {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
 </style>
-
-<script>
-    const startButton = document.getElementById('start-button');
-    const container = document.getElementById('container');
-    const wipe = document.querySelector('.screen-wipe') as HTMLElement | null;
-
-    startButton?.addEventListener('click', () => {
-        if (!container || !wipe) return;
-
-        // Reset origin to left before starting
-        wipe.style.transformOrigin = 'left';
-        
-        // 1. Trigger the wipe cover
-        container.classList.add('swipe-active');
-
-        // 2. Exactly halfway (when screen is 100% green covered)
-        setTimeout(() => {
-            container.classList.add('wipe-complete'); // Lock the new screen visibility in
-            wipe.style.transformOrigin = 'right';      // Change origin to right
-            container.classList.remove('swipe-active'); // Retract the green wipe to the right
-        }, 600); // Matches the 0.6s transition duration
-    });
-</script>
